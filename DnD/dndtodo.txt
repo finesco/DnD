@@ -1,0 +1,17 @@
+build template for outputting monster data
+
+create character class and derived pc and npc classes
+
+simple combat performance api
+
+
+add virtual to existing model to see if it still imports
+
+
+done:
+build monster table with supporting classes
+monsters
+monsteractions
+monsterabilities
+
+load data from file into tables
