@@ -17,5 +17,6 @@ namespace DnD.Data
         public DbSet<SpecialAbility> MonsterSpecialAbilities { get; set; }
         public DbSet<DTO.Action> MonsterActions { get; set; }
         public DbSet<LegendaryAction> MonsterLegendaryActions { get; set; }
+        public DbSet<GenericMonsterStats> GenericMonsterStats { get; set; }
     }
 }

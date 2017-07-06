@@ -8,9 +8,10 @@ using DnD.Data;
 namespace DnD.Migrations
 {
     [DbContext(typeof(DnDContext))]
-    partial class DnDContextModelSnapshot : ModelSnapshot
+    [Migration("20170706014623_addgenericmonsterstats")]
+    partial class addgenericmonsterstats
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
             modelBuilder
                 .HasAnnotation("ProductVersion", "1.1.2")
