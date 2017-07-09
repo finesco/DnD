@@ -94,7 +94,8 @@ namespace DnD.Data
             if (genericMonsterStats == null)
                 return null;
             Character c = new Character($"Generic CR {cr}", false, Locations.Front, genericMonsterStats.ArmorClass, genericMonsterStats.HitPoints, 1,
-                2 + genericMonsterStats.ProficiencyBonus, 1, 2 + genericMonsterStats.ProficiencyBonus, 1, 1, 1);
+                2 + genericMonsterStats.ProficiencyBonus, 1, 2 + genericMonsterStats.ProficiencyBonus, 1, 1, 1)
+            { Level = 0 };
             switch (cr)
             {
                 case "0":
@@ -111,6 +112,7 @@ namespace DnD.Data
                     break;
                 default:
                     c.Actions.Add(new CombatAction("Generic Melee", genericMonsterStats.AttackBonus, "d10", (genericMonsterStats.Damage - 11) / 2, 2, AttackTypes.Melee));
+                    c.Level = Convert.ToInt32(cr);
                     break;
             }
             return c;

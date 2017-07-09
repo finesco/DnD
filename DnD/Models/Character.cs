@@ -228,15 +228,7 @@ namespace DnD.Models
         {
             if (Effects == null)
                 return true;
-            int i = 0;
-            bool isTargetable = true;
-            while (i < Effects.Count && isTargetable)
-            {
-                if (Effects[i].RemovesFromPlay)
-                    isTargetable = false;
-                i++;
-            }
-            return isTargetable;
+            return !Effects.Where(e => e.RemovesFromPlay).Any();
         }
 
         public int GetSave(SaveTypes saveType)

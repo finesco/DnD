@@ -28,6 +28,7 @@ namespace DnD.Controllers
         [Route("api/Combat/{sessionId}")]
         public IActionResult RunSimulation(int sessionId)
         {
+            _log.Info("beginning sim");
             session = _repo.LoadSession(sessionId);
             _log.Debug("test:" + sessionId);
             for (int j = 0; j < session.Trials; j++)
@@ -51,6 +52,7 @@ namespace DnD.Controllers
                 session.Reset();
             }
             fileReport();
+            _log.Info("ending sim");
             return Ok();
         }
 
@@ -184,9 +186,8 @@ namespace DnD.Controllers
 
         }
 
-        //review for efficiencies -- ways to avoid repeatedly doing the tolist conversion
         private Tuple<CombatAction, List<Character>> selectActionAndTargets(Character c)
-        {                      
+        {
             Tuple<CombatAction, List<Character>> selection = new Tuple<CombatAction, List<Character>>(null, null);
             //examine priority list of actions to find first one that meets criteria
             foreach (var action in c.Actions.Where(a => a.IsAvailable(c.RemainingSpellSlots) && ((a.IsBonusAction && c.HasBonusAction) || (!a.IsBonusAction && c.HasAction))))
@@ -199,26 +200,35 @@ namespace DnD.Controllers
                 if (action.RequiresConcentration && c.IsConcentrating) //does not allow that anyone would voluntarily stop concentrating on one thing to use another
                     continue;
                 //select target(s)
-                List<Character> targetList;
+                List<Character> targetList = new List<Character>();
                 if (action.Targeting.TargetSelfOnly)
                 {
-                    targetList = new List<Character>();
                     targetList.Add(c);
                 }
                 else if ((c.IsPC && !action.Targeting.TargetFriendly) || (!c.IsPC && action.Targeting.TargetFriendly))
-                    targetList = session.Encounters[session.CurrentEncounter].Opponents;
+                    foreach(var chr in session.Encounters[session.CurrentEncounter].Opponents)
+                        targetList.Add(chr);
                 else
-                    targetList = session.PCs;
+                    foreach (var chr in session.PCs)
+                        targetList.Add(chr);
                 //if (grappled && action.ActionType == ActionTypes.Attack && action.AttackType == AttackTypes.Melee)
                 //    targetList = grappler;
-                targetList = targetList.Where(t => t.IsTargetable()).ToList();
+                targetList.RemoveAll(t => !t.IsTargetable());
                 if (action.ActionType == ActionTypes.Attack && action.AttackType == AttackTypes.Melee && !c.CanMove())
                     if (c.Location == Locations.Back)
                         continue;
                     else
-                        targetList = targetList.Where(t => t.Location == Locations.Front).ToList();
+                    {
+                        targetList.RemoveAll(t => t.Location != Locations.Front);
+                        if (targetList.Count == 0)
+                            continue;
+                    }
                 if (action.Targeting.HasSpecificTarget)
-                    targetList = targetList.Where(t => t.Name == action.Targeting.SpecificTarget).ToList();
+                {
+                    targetList.RemoveAll(t => t.Name != action.Targeting.SpecificTarget);
+                    if (targetList.Count == 0)
+                        continue;
+                }
                 if (action.Targeting.HasSpecialTargeting)
                 {
                     if (action.Targeting.HasSpecialParm(SpecialParms.GWMBonus))
@@ -230,9 +240,9 @@ namespace DnD.Controllers
                         //this would not work if actions allowed on round 0
                         bool qual = (session.Encounters[session.CurrentEncounter].Round == 1 && c.IsConcentrating);
                         int ix = 0;
-                        while (!qual && ix < targetList.Count)
+                        while (!qual && ix < session.Encounters[session.CurrentEncounter].Opponents.Count)
                         {
-                            if (targetList[ix].IsCursedByAttacker(c) && targetList[ix].HasCondition(Conditions.Dead))
+                            if (session.Encounters[session.CurrentEncounter].Opponents[ix].HasCondition(Conditions.Dead) && session.Encounters[session.CurrentEncounter].Opponents[ix].IsCursedByAttacker(c))
                                 qual = true;
                             else
                                 ix++;
@@ -248,53 +258,81 @@ namespace DnD.Controllers
                             {
                                 _log.Debug("Removing hex/mark from " + targetList[ix].Name);
                                 if (action.Targeting.HasSpecialParm(SpecialParms.MoveMark))
-                                    targetList[ix].RemoveConditionBySource(Conditions.HunterMarked, c);
+                                    session.Encounters[session.CurrentEncounter].Opponents[ix].RemoveConditionBySource(Conditions.HunterMarked, c);
                                 else //assume it is hex
-                                    targetList[ix].RemoveConditionBySource(Conditions.Hexed, c);
+                                    session.Encounters[session.CurrentEncounter].Opponents[ix].RemoveConditionBySource(Conditions.Hexed, c);
                             }
                         }
                     }
                 }
-                if (targetList.Count > 0 && action.Targeting.HasCondition)
-                    targetList = targetList.Where(t => t.HasCondition(action.Targeting.Condition)).ToList();
-                if (targetList.Count > 0 && action.Targeting.HasMissingCondition)
-                    targetList = targetList.Where(t => !t.HasCondition(action.Targeting.MissingCondition)).ToList();
-                if (targetList.Count > 0 && action.Targeting.HasWeakSaveTarget)
-                    targetList = targetList.Where(t => t.GetSave(action.Targeting.WeakSaveTarget) <= c.Level / 4).ToList();
-                if (targetList.Count > 0 && action.Targeting.IsCC)
-                    targetList = targetList.Where(t => t.CCTarget).ToList();
-                if (targetList.Count > 0 && action.Targeting.HasLocationTarget)
-                    if (!(action.Targeting.LocationTarget == Locations.Front && action.AttackType == AttackTypes.Melee && targetList.Where(t => t.Location == Locations.Front && t.IsAlive()).Count() == 0))
-                        targetList = targetList.Where(t => t.Location == action.Targeting.LocationTarget).ToList();
-                if (targetList.Count > 0 && action.Targeting.HasHealthTarget)
+                if (action.Targeting.HasCondition)
+                {
+                    targetList.RemoveAll(t => !t.HasCondition(action.Targeting.Condition));
+                    if (targetList.Count == 0)
+                        continue;
+                }
+                if (action.Targeting.HasMissingCondition)
+                {
+                    targetList.RemoveAll(t => t.HasCondition(action.Targeting.MissingCondition));
+                    if (targetList.Count == 0)
+                        continue;
+                }
+                if (action.Targeting.HasWeakSaveTarget)
+                {
+                    targetList.RemoveAll(t => t.GetSave(action.Targeting.WeakSaveTarget) > c.Level / 4);
+                    if (targetList.Count == 0)
+                        continue;
+                }
+                if (action.Targeting.IsCC)
+                {
+                    targetList.RemoveAll(t => !t.CCTarget);
+                    if (targetList.Count == 0)
+                        continue;
+                }
+                if (action.Targeting.HasLocationTarget)
+                    if (!(action.Targeting.LocationTarget == Locations.Front && action.AttackType == AttackTypes.Melee && !targetList.Where(t => t.Location == Locations.Front && t.IsAlive()).Any()))
+                    {
+                        targetList.RemoveAll(t => t.Location != action.Targeting.LocationTarget);
+                        if (targetList.Count == 0)
+                            continue;
+                    }
+                if (action.Targeting.HasHealthTarget)
                 {
                     switch (action.Targeting.HealthTarget)
                     {
                         case HealthTargets.Undamaged:
-                            targetList = targetList.Where(t => t.MaxHP == t.CurrentHP).ToList();
+                            targetList.RemoveAll(t => t.MaxHP != t.CurrentHP);
                             break;
                         case HealthTargets.Dying:
-                            targetList = targetList.Where(t => t.HasCondition(Conditions.Dying)).ToList();
+                            targetList.RemoveAll(t => !t.HasCondition(Conditions.Dying));
                             break;
                         case HealthTargets.BadlyHurt:
-                            targetList = targetList.Where(t => t.CurrentHP <= t.MaxHP / 4).ToList();
+                            targetList.RemoveAll(t => t.CurrentHP > t.MaxHP / 4);
                             break;
                         case HealthTargets.Bloodied:
-                            targetList = targetList.Where(t => t.CurrentHP <= t.MaxHP / 2).ToList();
+                            targetList.RemoveAll(t => t.CurrentHP > t.MaxHP / 2);
                             break;
                         case HealthTargets.AboveThreshold:
-                            targetList = targetList.Where(t => t.CurrentHP >= action.Targeting.HealthThreshold).ToList();
+                            targetList.RemoveAll(t => t.CurrentHP < action.Targeting.HealthThreshold);
                             break;
                         default:
-                            targetList = targetList.Where(t => t.IsAlive()).ToList();
+                            targetList.RemoveAll(t => !t.IsAlive());
                             break;
                     }
+                    if (targetList.Count == 0)
+                        continue;
                 }
-                else if (targetList.Count > 0) //if there are no specific instructions otherwise, we only want to target living opponents
-                    targetList = targetList.Where(t => t.IsAlive()).ToList();
-                if (targetList.Where(t => t.CanAct()).Count() > 0) //only target active opponents, unless the only ones left are CCd
-                    targetList = targetList.Where(t => t.CanAct()).ToList();
-                if (targetList.Count > 0 && targetList.Count >= action.Targeting.MinimumTargets)
+                else //if there are no specific instructions otherwise, we only want to target living opponents
+                {
+                    targetList.RemoveAll(t => !t.IsAlive());
+                    if (targetList.Count == 0)
+                        continue;
+                }
+                if (targetList.Where(t => t.CanAct()).Any()) //only target active opponents, unless the only ones left are CCd
+                {
+                    targetList.RemoveAll(t => !t.CanAct());
+                }
+                if (targetList.Count >= action.Targeting.MinimumTargets)
                     return new Tuple<CombatAction, List<Character>>(action, targetList); //legal action found -- return it
             }
             //if we've gotten to here, we couldn't find a legal action to take
@@ -379,7 +417,7 @@ namespace DnD.Controllers
                             }
                             //in the case of multi-attacks, it's possible that opponent was dropped by previous hit
                             //so we want to refilter the list to targets that are still alive
-                            targetList = targetList.Where(t => t.IsAlive()).ToList();
+                            targetList.RemoveAll(t => !t.IsAlive());
                             if (targetList.Count == 0)
                             {
                                 _log.Debug("Can't continue attack -- no remaining targets");
