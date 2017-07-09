@@ -22,17 +22,6 @@ namespace DnD.Controllers
             _context = context;
         }
 
-        private async Task<Character> getGenericMonster(string cr)
-        {
-            var genericMonsterStats = await _context.GenericMonsterStats.SingleOrDefaultAsync(m => m.CR == cr);
-            if (genericMonsterStats == null)
-                return null;
-            Character c = new Character($"Generic CR {cr}", false, Locations.Front, genericMonsterStats.ArmorClass, genericMonsterStats.HitPoints, 1,
-                2 + genericMonsterStats.ProficiencyBonus, 1, 2 + genericMonsterStats.ProficiencyBonus, 1, 1, 1);
-            c.Actions.Add(new CombatAction("Generic Melee", genericMonsterStats.AttackBonus, "d10", (genericMonsterStats.Damage - 11) / 2, 2, AttackTypes.Melee));
-            return c;
-        }
-
         // GET: api/GenericMonster/5
         [HttpGet("{cr}")]
         public async Task<IActionResult> GetGenericMonsterStats([FromRoute] string cr)

@@ -11,5 +11,6 @@ namespace DnD.Data
         void SaveResults();
         Encounter LoadEncounter(int encounterId); //need DTO for this?
         Session LoadSession(int sessionId);
+        Task<Character> getGenericMonster(string cr);
     }
 }

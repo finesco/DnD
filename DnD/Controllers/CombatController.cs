@@ -50,6 +50,7 @@ namespace DnD.Controllers
                 _log.Debug("Resetting session " + j);
                 session.Reset();
             }
+            fileReport();
             return Ok();
         }
 
@@ -551,6 +552,11 @@ namespace DnD.Controllers
 
         private void applyDamage(Character attacker, Character target, CombatAction action, int dmg)
         {
+            if (dmg <= 0)
+            {
+                _log.Debug($"Ignoring damage of {dmg}");
+                return;
+            }
             target.Statistics.DamageTaken += dmg;
             action.DamageDealt += dmg;
             if (attacker.IsPC)
@@ -986,6 +992,170 @@ namespace DnD.Controllers
                 _log.Debug(c.Name + " uses Fiendish Vigor (Temp HP = 8)");
                 c.TempHP = 8;
             }
+        }
+
+        private void fileReport()
+        {
+            using (System.IO.StreamWriter file =
+                new System.IO.StreamWriter(System.IO.File.Create(@"C:\Temp\DnDReport.txt")))
+            {
+                int tpk = 0, pcdeaths = 0, pcdrops = 0, encounters = 0, npcturns = 0, pcturns = 0, rounds = 0, pcdmgdealt = 0, pcdmgtaken = 0, dmgtemp = 0, dmgward = 0, dmgover = 0, healed = 0;
+                int attacks = 0, advattacks = 0, crits = 0, overkilldealt = 0, kills = 0, hits = 0, heal = 0, npcatt = 0, npchit = 0, npccrit = 0, shortrestheal = 0, overheal = 0, powattacks = 0;
+
+                file.WriteLine("Report for simulation");
+                for (int i = 0; i < session.Encounters.Count; i++)
+                {
+                    Encounter e = session.Encounters[i];
+                    file.WriteLine("Encounter " + (i + 1).ToString());
+                    file.WriteLine("Difficulty: " + e.Difficulty);
+                    file.Write("Opponents: ");
+                    foreach (var c in e.Opponents)
+                        file.Write(c.Name + "; ");
+                    file.WriteLine();
+                    file.WriteLine("Times Run (%): " + String.Format("{0} {1:p}", e.TimesRun, (float)e.TimesRun / session.Trials));
+                    encounters += e.TimesRun;
+                    file.WriteLine("Total TPKs (%): " + String.Format("{0} ({1:p})", e.TPKs, (float)e.TPKs / e.TimesRun));
+                    tpk += e.TPKs;
+                    file.WriteLine("PC Deaths: " + String.Format("{0:f}", (float)e.PCDeaths / e.TimesRun));
+                    pcdeaths += e.PCDeaths;
+                    file.WriteLine("PC Drops: " + String.Format("{0:f}", (float)e.PCDrops / e.TimesRun));
+                    pcdrops += e.PCDrops;
+                    file.WriteLine("NPC Turns Taken: " + String.Format("{0:f}", (float)e.NPCTurnsTaken / e.TimesRun));
+                    npcturns += e.NPCTurnsTaken;
+                    file.WriteLine("PC Turns Taken: " + String.Format("{0:f}", (float)e.PCTurnsTaken / e.TimesRun));
+                    pcturns += e.PCTurnsTaken;
+                    file.WriteLine("Rounds: " + String.Format("{0:f}", (float)e.Rounds / e.TimesRun));
+                    rounds += e.Rounds;
+                    file.WriteLine("PCs (start): " + String.Format("{0:f}", (float)e.PCStartCount / e.TimesRun));
+                    file.WriteLine("PCs (end): " + String.Format("{0:f}", (float)e.PCEndCount / e.TimesRun));
+                    file.WriteLine("PC Dmg Dealt: " + String.Format("{0:f}", (float)e.PCDamageDealt / e.TimesRun));
+                    file.WriteLine("PC Dmg Taken: " + String.Format("{0:f}", (float)e.PCDamageTaken / e.TimesRun));
+                    file.WriteLine("-------------------------------------");
+                }
+                foreach (var c in session.PCs)
+                {
+                    int cattacks = 0, cadvattacks = 0, ccrits = 0, coverkilldealt = 0, ckills = 0, cdmg = 0, chits = 0, cheal = 0, coverheal = 0, cpowattacks = 0;
+                    file.WriteLine(c.Name);
+                    file.WriteLine("HP/AC: " + c.MaxHP + "/" + c.BaseAC);
+                    file.WriteLine("Turns Taken: " + String.Format("{0:f}", (float)c.Statistics.TurnsTaken / session.Trials));
+                    file.WriteLine("Turns Active (%): " + String.Format("{0:f} ({1:p})", c.Statistics.TurnsActive / session.Trials, (float)c.Statistics.TurnsActive / c.Statistics.TurnsTaken));
+                    file.WriteLine("Turns Concentrating (%): " + String.Format("{0:f} ({1:p})", c.Statistics.TurnsConcentrating / session.Trials, (float)c.Statistics.TurnsConcentrating / c.Statistics.TurnsTaken));
+                    file.WriteLine("Concentration Broken: " + String.Format("{0:f}", (float)c.Statistics.ConcentrationBroken / session.Trials));
+                    file.WriteLine("Times Dropped: " + String.Format("{0:f} ", (float)c.Statistics.TimesDropped / session.Trials));
+                    file.WriteLine("Times Killed (%): " + String.Format("{0:f} ({1:p})", (float)c.Statistics.TimesKilled / session.Trials, (float)c.Statistics.TimesKilled / session.Trials));
+                    file.WriteLine("Action Breakdown:");
+                    foreach (var a in c.Actions)
+                    {
+                        file.WriteLine(String.Format("\t" + a.Name));
+                        file.WriteLine(String.Format("\t\tTimes Used: {0:f}", (float)a.TimesUsed / session.Trials));
+                        file.WriteLine(String.Format("\t\tAttacks Made: {0:f}", (float)a.AttacksMade / session.Trials));
+                        cattacks += a.AttacksMade;
+                        attacks += a.AttacksMade;
+                        file.WriteLine(String.Format("\t\tAttacks /w Advantage (%): {0:f} ({1:p})", (float)a.AttacksWithAdvantage / session.Trials, a.AttacksMade == 0 ? 0 : (float)a.AttacksWithAdvantage / a.AttacksMade));
+                        cadvattacks += a.AttacksWithAdvantage;
+                        advattacks += a.AttacksWithAdvantage;
+                        file.WriteLine(String.Format("\t\tPower Attacks (%): {0:f} ({1:p})", (float)a.PowerAttacks / session.Trials, a.AttacksMade == 0 ? 0 : (float)a.PowerAttacks / a.AttacksMade));
+                        cpowattacks += a.PowerAttacks;
+                        powattacks += a.PowerAttacks;
+                        file.WriteLine(String.Format("\t\tHits (%): {0:f} ({1:p})", (float)a.Hits / session.Trials, a.AttacksMade == 0 ? 0 : (float)a.Hits / a.AttacksMade));
+                        hits += a.Hits;
+                        chits += a.Hits;
+                        file.WriteLine(String.Format("\t\tCrits (%): {0:f} ({1:p})", (float)a.Crits / session.Trials, a.AttacksMade == 0 ? 0 : (float)a.Crits / a.AttacksMade));
+                        crits += a.Crits;
+                        ccrits += a.Crits;
+                        if (a.ActionType == ActionTypes.Attack)
+                            file.WriteLine(String.Format("\t\tDamage Dealt (per attack): {0:f} ({1:f})", (float)a.DamageDealt / session.Trials, a.AttacksMade == 0 ? 0 : (float)a.DamageDealt / a.AttacksMade));
+                        else
+                            file.WriteLine(String.Format("\t\tDamage Dealt (per use): {0:f} ({1:f})", (float)a.DamageDealt / session.Trials, a.TimesUsed == 0 ? 0 : (float)a.DamageDealt / a.TimesUsed));
+                        cdmg += a.DamageDealt;
+                        pcdmgdealt += a.DamageDealt;
+                        file.WriteLine(String.Format("\t\tOverkill (%): {0:f} ({1:p})", (float)a.OverKillDealt / session.Trials, a.DamageDealt == 0 ? 0 : (float)a.OverKillDealt / a.DamageDealt));
+                        coverkilldealt += a.OverKillDealt;
+                        overkilldealt += a.OverKillDealt;
+                        file.WriteLine(String.Format("\t\tKills: {0:f}", (float)a.Kills / session.Trials));
+                        kills += a.Kills;
+                        ckills += a.Kills;
+                        file.WriteLine(String.Format("\t\tHealing Done (per use): {0:f} ({1:f})", (float)a.HealingDone / session.Trials, a.TimesUsed == 0 ? 0 : (float)a.HealingDone / a.TimesUsed));
+                        cheal += a.HealingDone;
+                        heal += a.HealingDone;
+                        file.WriteLine(String.Format("\t\tOverhealing Done (%): {0:f} ({1:p})", (float)a.OverHealingDone / session.Trials, a.HealingDone == 0 ? 0 : (float)a.OverHealingDone / a.HealingDone));
+                        coverheal += a.OverHealingDone;
+                        overheal += a.OverHealingDone;
+                    }
+                    foreach (var a in c.Abilities)
+                        if (a.TimesUsed > 0)
+                        {
+                            file.WriteLine(String.Format("\t" + a.Name));
+                            file.WriteLine(String.Format("\t\tTimes Used: {0:f}", (float)a.TimesUsed / session.Trials));
+                        }
+                    file.WriteLine(String.Format("Attacks Made: {0:f}", (float)cattacks / session.Trials));
+                    file.WriteLine(String.Format("Attacks /w Advantage (%): {0:f} ({1:p})", (float)cadvattacks / session.Trials, cattacks == 0 ? 0 : (float)cadvattacks / cattacks));
+                    file.WriteLine(String.Format("Power Attacks (%): {0:f} ({1:p})", (float)cpowattacks / session.Trials, cattacks == 0 ? 0 : (float)cpowattacks / cattacks));
+                    file.WriteLine(String.Format("Hits (%): {0:f} ({1:p})", (float)chits / session.Trials, cattacks == 0 ? 0 : (float)chits / cattacks));
+                    file.WriteLine(String.Format("Crits (%): {0:f} ({1:p})", (float)ccrits / session.Trials, cattacks == 0 ? 0 : (float)ccrits / cattacks));
+                    file.WriteLine(String.Format("Damage Dealt (per act turn): {0:f} ({1:f})", (float)cdmg / session.Trials, cattacks == 0 ? 0 : (float)cdmg / c.Statistics.TurnsActive));
+                    if (c.Statistics.SneakAttacks > 0)
+                    {
+                        file.WriteLine(String.Format("Sneak Attack Hits (% act turn): {0:f} ({1:p})", (float)c.Statistics.SneakAttacks / session.Trials, (float)c.Statistics.SneakAttacks / c.Statistics.TurnsActive));
+                        file.WriteLine(String.Format("Sneak Attack Damage: {0:f}", (float)c.Statistics.SneakAttackDamageDealt / session.Trials));
+                    }
+                    if (c.Statistics.HexAttacks > 0)
+                    {
+                        file.WriteLine(String.Format("Hex Attack Hits (% attacks): {0:f} ({1:p})", (float)c.Statistics.HexAttacks / session.Trials, (float)c.Statistics.HexAttacks / cattacks));
+                        file.WriteLine(String.Format("Hex Damage: {0:f}", (float)c.Statistics.HexAttackDamageDealt / session.Trials));
+                    }
+                    file.WriteLine(String.Format("Overkill (%): {0:f} ({1:p})", (float)coverkilldealt / session.Trials, cdmg == 0 ? 0 : (float)coverkilldealt / cdmg));
+                    file.WriteLine(String.Format("Kills: {0:f}", (float)ckills / session.Trials));
+                    file.WriteLine(String.Format("Healing Done: {0:f}", (float)cheal / session.Trials));
+                    file.WriteLine(String.Format("Overhealing Done (%): {0:f} ({1:p})", (float)coverheal / session.Trials, cheal == 0 ? 0 : (float)coverheal / cheal));
+                    file.WriteLine(String.Format("Attacks Against: {0:f}", (float)c.Statistics.AttacksAgainst / session.Trials));
+                    npcatt += c.Statistics.AttacksAgainst;
+                    file.WriteLine(String.Format("Hits Against (%): {0:f} ({1:p})", (float)c.Statistics.HitsAgainst / session.Trials, c.Statistics.AttacksAgainst == 0 ? 0 : (float)c.Statistics.HitsAgainst / c.Statistics.AttacksAgainst));
+                    npchit += c.Statistics.HitsAgainst;
+                    file.WriteLine(String.Format("Crits Against (%): {0:f} ({1:p})", (float)c.Statistics.CritsAgainst / session.Trials, c.Statistics.AttacksAgainst == 0 ? 0 : (float)c.Statistics.CritsAgainst / c.Statistics.AttacksAgainst));
+                    npccrit += c.Statistics.CritsAgainst;
+                    file.WriteLine(String.Format("Damage Taken (per act turn): {0:f} ({1:f})", (float)c.Statistics.DamageTaken / session.Trials, c.Statistics.AttacksAgainst == 0 ? 0 : (float)c.Statistics.DamageTaken / c.Statistics.TurnsActive));
+                    pcdmgtaken += c.Statistics.DamageTaken;
+                    file.WriteLine(String.Format("Temp HP Absorb (%): {0:f} ({1:p})", (float)c.Statistics.TempHPAbsorbed / session.Trials, c.Statistics.DamageTaken == 0 ? 0 : (float)c.Statistics.TempHPAbsorbed / c.Statistics.DamageTaken));
+                    dmgtemp += c.Statistics.TempHPAbsorbed;
+                    file.WriteLine(String.Format("Ward HP Absorb (%): {0:f} ({1:p})", (float)c.Statistics.WardHPAbsorbed / session.Trials, c.Statistics.DamageTaken == 0 ? 0 : (float)c.Statistics.WardHPAbsorbed / c.Statistics.DamageTaken));
+                    dmgward += c.Statistics.WardHPAbsorbed;
+                    file.WriteLine(String.Format("Overkilled (%): {0:f} ({1:p})", (float)c.Statistics.OverKillTaken / session.Trials, c.Statistics.DamageTaken == 0 ? 0 : (float)c.Statistics.OverKillTaken / c.Statistics.DamageTaken));
+                    dmgover += c.Statistics.OverKillTaken;
+                    file.WriteLine(String.Format("Healing Received: {0:f}", (float)c.Statistics.HealingReceived / session.Trials));
+                    healed += c.Statistics.HealingReceived;
+                    file.WriteLine(String.Format("Short Rest Healing: {0:f}", (float)c.Statistics.ShortRestHealing / session.Trials));
+                    shortrestheal += c.Statistics.ShortRestHealing;
+                    file.WriteLine("-------------------------------------");
+                }
+                file.WriteLine("TOTALS");
+                file.WriteLine("Trials: " + session.Trials);
+                file.WriteLine(String.Format("TPKs (%): {0} ({1:p})", tpk, (float)tpk / session.Trials));
+                file.WriteLine("PC Deaths: " + String.Format("{0:f}", (float)pcdeaths / session.Trials));
+                file.WriteLine("PC Drops: " + String.Format("{0:f}", (float)pcdrops / session.Trials));
+                file.WriteLine("NPC Turns Taken: " + String.Format("{0:f}", (float)npcturns / session.Trials));
+                file.WriteLine("PC Turns Taken: " + String.Format("{0:f}", (float)pcturns / session.Trials));
+                file.WriteLine("Rounds (per enc): " + String.Format("{0:f} ({1:f})", (float)rounds / session.Trials, (float)rounds / (session.Trials * session.Encounters.Count)));
+                file.WriteLine(String.Format("Attacks Made: {0:f}", (float)attacks / session.Trials));
+                file.WriteLine(String.Format("Attacks /w Advantage (%): {0:f} ({1:p})", (float)advattacks / session.Trials, attacks == 0 ? 0 : (float)advattacks / attacks));
+                file.WriteLine(String.Format("Power Attacks (%): {0:f} ({1:p})", (float)powattacks / session.Trials, attacks == 0 ? 0 : (float)powattacks / attacks));
+                file.WriteLine(String.Format("Hits (%): {0:f} ({1:p})", (float)hits / session.Trials, attacks == 0 ? 0 : (float)hits / attacks));
+                file.WriteLine(String.Format("Crits (%): {0:f} ({1:p})", (float)crits / session.Trials, attacks == 0 ? 0 : (float)crits / attacks));
+                file.WriteLine(String.Format("Damage Dealt (per round): {0:f} ({1:f})", (float)pcdmgdealt / session.Trials, attacks == 0 ? 0 : (float)pcdmgdealt / rounds));
+                file.WriteLine(String.Format("Overkill (%): {0:f} ({1:p})", (float)overkilldealt / session.Trials, pcdmgdealt == 0 ? 0 : (float)overkilldealt / pcdmgdealt));
+                file.WriteLine(String.Format("Kills: {0:f}", (float)kills / session.Trials));
+                file.WriteLine(String.Format("Healing Done: {0:f}", (float)heal / session.Trials));
+                file.WriteLine(String.Format("Overhealing Done (%): {0:f} ({1:p})", (float)overheal / session.Trials, heal == 0 ? 0 : (float)overheal / heal));
+                file.WriteLine(String.Format("Attacks Against: {0:f}", (float)npcatt / session.Trials));
+                file.WriteLine(String.Format("Hits Against (%): {0:f} ({1:p})", (float)npchit / session.Trials, npcatt == 0 ? 0 : (float)npchit / npcatt));
+                file.WriteLine(String.Format("Crits Against (%): {0:f} ({1:p})", (float)npccrit / session.Trials, npcatt == 0 ? 0 : (float)npccrit / npcatt));
+                file.WriteLine(String.Format("Damage Taken (per attack): {0:f} ({1:f})", (float)pcdmgtaken / session.Trials, npcatt == 0 ? 0 : (float)pcdmgtaken / npcatt));
+                file.WriteLine(String.Format("Temp HP Absorb (%): {0:f} ({1:p})", (float)dmgtemp / session.Trials, pcdmgtaken == 0 ? 0 : (float)dmgtemp / pcdmgtaken));
+                file.WriteLine(String.Format("Ward HP Absorb (%): {0:f} ({1:p})", (float)dmgward / session.Trials, pcdmgtaken == 0 ? 0 : (float)dmgward / pcdmgtaken));
+                file.WriteLine(String.Format("Overkilled (%): {0:f} ({1:p})", (float)dmgover / session.Trials, pcdmgtaken == 0 ? 0 : (float)dmgover / pcdmgtaken));
+                file.WriteLine(String.Format("Short Rest Healing: {0:f}", (float)shortrestheal / session.Trials));
+            }
+
         }
     }
 }
