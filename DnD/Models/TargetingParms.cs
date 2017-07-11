@@ -38,15 +38,7 @@ namespace DnD.Models
         {
             if (SpecialTargeting == null)
                 return false;
-            int i = 0;
-            bool found = false;
-            while (i < SpecialTargeting.Count && !found)
-            {
-                if (SpecialTargeting[i] == parm)
-                    found = true;
-                i++;
-            }
-            return found;
+            return SpecialTargeting.Contains(parm);
         }
 
         public void AddSpecialParm(SpecialParms parm)

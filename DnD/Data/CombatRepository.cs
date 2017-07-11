@@ -24,61 +24,93 @@ namespace DnD.Data
 
         public Session LoadSession(int sessionId)
         {
-            Session session = new Session(0) { Trials = 10000, Level = 1, NPCTargetingStyle = TargetingStyle.Spread, PCTargetingStyle = TargetingStyle.Focus };
-            Character char1 = new Character("Krym", true, Locations.Front, 16, 12, -1, 5, -1, 4, 0, -1, 2);
-            TargetingParms targeting = new TargetingParms();
-            targeting.TargetSelfOnly = true;
-            targeting.HealthTarget = HealthTargets.Bloodied;
-            targeting.HasHealthTarget = true;
-            char1.Actions.Add(new CombatAction("Second Wind", ActionTypes.Heal, "d10", 1, true, false, targeting, 1, RefreshTypes.ShortRest, 0, 1));
-            targeting = new TargetingParms();
-            targeting.AddSpecialParm(SpecialParms.GWMBonus);
-            char1.Actions.Add(new CombatAction("Greatsword swing (GWM Bonus)", 5, "2d6", 3, 1, AttackTypes.Melee, true, true, false, true, false, targeting));
-            char1.Actions.Add(new CombatAction("Greatsword swing", 5, "2d6", 3, 1, AttackTypes.Melee, true, true, false, false, false, new TargetingParms()));
-            char1.Abilities.Add(new CombatAction("Dorn", 0, "", 0, 0, AttackTypes.Melee));
-            char1.AddHitDice(10, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            session.PCs.Add(char1);
-            char1 = new Character("Nyles", true, Locations.Back, 18, 10, 2, -1, 2, 2, 4, 5, -1);
-            char1.AddSpellSlots(2, 0, 0, 0, 0, 0, 0, 0, 0);
-            targeting = new TargetingParms();
-            targeting.TargetFriendly = true;
-            targeting.HealthTarget = HealthTargets.Dying;
-            targeting.HasHealthTarget = true;
-            char1.Actions.Add(new CombatAction("Healing Word", ActionTypes.Heal, "d4", 2, true, false, targeting, 0, RefreshTypes.Spell, 1, 1));
-            char1.Actions.Add(new CombatAction("Short Sword", 4, "d6", 2, 1, AttackTypes.Melee));
-            char1.Abilities.Add(new CombatAction("Healing Word (Postcombat)", "d4", 2, 1, RefreshTypes.Spell, 1, HealingPriorities.Low));
-            char1.AddHitDice(8, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            session.PCs.Add(char1);
-            char1 = new Character("Sanchez", true, Locations.Back, 14, 10, 3, -1, 5, 2, 1, 1, 3);
-            char1.SneakAttackDamage = "d6";
-            char1.Actions.Add(new CombatAction("Short sword", 5, "d6", 3, 1, AttackTypes.Melee));
-            char1.Actions.Add(new CombatAction("Dagger (off hand)", 5, "d4", 0, 1, AttackTypes.Melee, false, false, false, true, false, new TargetingParms()));
-            char1.AddHitDice(8, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            session.PCs.Add(char1);
-            char1 = new Character("Jennifer", true, Locations.Front, 16, 12, -1, 3, -1, 2, 1, -1, 4);
-            targeting = new TargetingParms();
-            targeting.TargetFriendly = true;
-            targeting.HealthTarget = HealthTargets.Dying;
-            targeting.HasHealthTarget = true;
-            targeting.HasSpecificTarget = true;
-            targeting.SpecificTarget = "Nyles";
-            char1.Actions.Add(new CombatAction("Lay on Hands", ActionTypes.Heal, "", 5, false, false, targeting, 1, RefreshTypes.LongRest, 0, 1));
-            targeting = new TargetingParms();
-            targeting.AddSpecialParm(SpecialParms.GWMBonus);
-            char1.Actions.Add(new CombatAction("Greatsword swing (GWM Bonus)", 5, "2d6", 3, 1, AttackTypes.Melee, false, true, false, true, false, targeting));
-            char1.Actions.Add(new CombatAction("Greatsword swing", 5, "2d6", 3, 1, AttackTypes.Melee, false, true, false, false, false, new TargetingParms()));
-            char1.Abilities.Add(new CombatAction("Lay on Hands", "", 5, 1, RefreshTypes.LongRest, 0, HealingPriorities.High));
-            char1.AddHitDice(10, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            char1.Abilities.Add(new CombatAction("Dorn", 0, "", 0, 0, AttackTypes.Melee));
-            session.PCs.Add(char1);
-            Encounter enc1 = new Encounter();
-            for (int i = 0; i < 4; i++)
+            Session session = new Session(0) { Trials = 10000, Level = 3, NPCTargetingStyle = TargetingStyle.Spread, PCTargetingStyle = TargetingStyle.Focus };
+            switch (sessionId)
             {
-                enc1.Opponents.Add(getGenericMonster("1/4").Result);
-                enc1.Opponents[i].Name += " " + (i + 1).ToString();
+                case 1:
+                    Character char1 = new Character("Krym", true, Locations.Front, 16, 12, -1, 5, -1, 4, 0, -1, 2);
+                    TargetingParms targeting = new TargetingParms();
+                    targeting.TargetSelfOnly = true;
+                    targeting.HealthTarget = HealthTargets.Bloodied;
+                    targeting.HasHealthTarget = true;
+                    char1.Actions.Add(new CombatAction("Second Wind", ActionTypes.Heal, "d10", 1, true, false, targeting, 1, RefreshTypes.ShortRest, 0, 1));
+                    targeting = new TargetingParms();
+                    targeting.AddSpecialParm(SpecialParms.GWMBonus);
+                    char1.Actions.Add(new CombatAction("Greatsword swing (GWM Bonus)", 5, "2d6", 3, 1, AttackTypes.Melee, true, true, false, true, false, targeting));
+                    char1.Actions.Add(new CombatAction("Greatsword swing", 5, "2d6", 3, 1, AttackTypes.Melee, true, true, false, false, false, new TargetingParms()));
+                    char1.Abilities.Add(new CombatAction("Dorn", 0, "", 0, 0, AttackTypes.Melee));
+                    char1.AddHitDice(10, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                    session.PCs.Add(char1);
+                    char1 = new Character("Nyles", true, Locations.Back, 18, 10, 2, -1, 2, 2, 4, 5, -1);
+                    char1.AddSpellSlots(2, 0, 0, 0, 0, 0, 0, 0, 0);
+                    targeting = new TargetingParms();
+                    targeting.TargetFriendly = true;
+                    targeting.HealthTarget = HealthTargets.Dying;
+                    targeting.HasHealthTarget = true;
+                    char1.Actions.Add(new CombatAction("Healing Word", ActionTypes.Heal, "d4", 2, true, false, targeting, 0, RefreshTypes.Spell, 1, 1));
+                    char1.Actions.Add(new CombatAction("Short Sword", 4, "d6", 2, 1, AttackTypes.Melee));
+                    char1.Abilities.Add(new CombatAction("Healing Word (Postcombat)", "d4", 2, 1, RefreshTypes.Spell, 1, HealingPriorities.Low));
+                    char1.AddHitDice(8, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                    session.PCs.Add(char1);
+                    char1 = new Character("Sanchez", true, Locations.Back, 14, 10, 3, -1, 5, 2, 1, 1, 3);
+                    char1.SneakAttackDamage = "d6";
+                    char1.Actions.Add(new CombatAction("Short sword", 5, "d6", 3, 1, AttackTypes.Melee));
+                    char1.Actions.Add(new CombatAction("Dagger (off hand)", 5, "d4", 0, 1, AttackTypes.Melee, false, false, false, true, false, new TargetingParms()));
+                    char1.AddHitDice(8, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                    session.PCs.Add(char1);
+                    char1 = new Character("Jennifer", true, Locations.Front, 16, 12, -1, 3, -1, 2, 1, -1, 4);
+                    targeting = new TargetingParms();
+                    targeting.TargetFriendly = true;
+                    targeting.HealthTarget = HealthTargets.Dying;
+                    targeting.HasHealthTarget = true;
+                    targeting.HasSpecificTarget = true;
+                    targeting.SpecificTarget = "Nyles";
+                    char1.Actions.Add(new CombatAction("Lay on Hands", ActionTypes.Heal, "", 5, false, false, targeting, 1, RefreshTypes.LongRest, 0, 1));
+                    targeting = new TargetingParms();
+                    targeting.AddSpecialParm(SpecialParms.GWMBonus);
+                    char1.Actions.Add(new CombatAction("Greatsword swing (GWM Bonus)", 5, "2d6", 3, 1, AttackTypes.Melee, false, true, false, true, false, targeting));
+                    char1.Actions.Add(new CombatAction("Greatsword swing", 5, "2d6", 3, 1, AttackTypes.Melee, false, true, false, false, false, new TargetingParms()));
+                    char1.Abilities.Add(new CombatAction("Lay on Hands", "", 5, 1, RefreshTypes.LongRest, 0, HealingPriorities.High));
+                    char1.AddHitDice(10, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                    char1.Abilities.Add(new CombatAction("Dorn", 0, "", 0, 0, AttackTypes.Melee));
+                    session.PCs.Add(char1);
+                    Encounter enc1 = new Encounter();
+                    for (int i = 0; i < 4; i++)
+                    {
+                        enc1.Opponents.Add(getGenericMonster("1/4").Result);
+                        enc1.Opponents[i].Name += " " + (i + 1).ToString();
+                    }
+                    enc1.Difficulty = EncounterDifficulties.Hard;
+                    session.Encounters.Add(enc1);
+                    break;
+                case 2:
+                    var c1 = new Character("Sloan", true, Locations.Back, 15, 28, 3, 1, 5, 2, 1, 2, -1) { Level = 3 };
+                    c1.Actions.Add(new CombatAction("Heavy Crossbow", 7, "d10", 3, 1, AttackTypes.Ranged, false, true, true, false, false, new TargetingParms()));
+                    c1.Abilities.Add(new CombatAction("Natural Explorer"));
+                    c1.Abilities.Add(new CombatAction("Underdark Scout"));
+                    c1.Abilities.Add(new CombatAction("Favored Enemy") { DamageBonus = 2, Targeting = new TargetingParms() { SpecificTarget = "Humanoid" } });
+                    session.PCs.Add(c1);
+                    char1 = new Character("Gideon", true, Locations.Front, 17, 24, -1, 5, -1, 4, 0, -1, 2);
+                    targeting = new TargetingParms();
+                    targeting.TargetSelfOnly = true;
+                    targeting.HealthTarget = HealthTargets.Bloodied;
+                    targeting.HasHealthTarget = true;
+                    char1.Actions.Add(new CombatAction("Second Wind", ActionTypes.Heal, "d10", 2, true, false, targeting, 1, RefreshTypes.ShortRest, 0, 1));
+                    targeting = new TargetingParms();
+                    targeting.AddSpecialParm(SpecialParms.GWMBonus);
+                    char1.Actions.Add(new CombatAction("Greatsword swing (GWM Bonus)", 5, "2d6", 3, 1, AttackTypes.Melee, true, true, false, true, false, targeting));
+                    char1.Actions.Add(new CombatAction("Greatsword swing", 5, "2d6", 3, 1, AttackTypes.Melee, true, true, false, false, false, new TargetingParms()));
+                    session.PCs.Add(char1);
+                    enc1 = new Encounter();
+                    for (int i = 0; i < 4; i++)
+                    {
+                        enc1.Opponents.Add(getGenericMonster("1/2").Result);
+                        enc1.Opponents[i].Name += " " + (i + 1).ToString();
+                    }
+                    enc1.Difficulty = EncounterDifficulties.Hard;
+                    session.Encounters.Add(enc1);
+                    break;
             }
-            enc1.Difficulty = EncounterDifficulties.Hard;
-            session.Encounters.Add(enc1);
 
             return session;
         }

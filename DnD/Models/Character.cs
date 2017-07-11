@@ -103,6 +103,8 @@ namespace DnD.Models
         public int[] HitDice { get; set; }
         public bool CCTarget { get; set; }
         public CharacterStats Statistics { get; set; }
+        public bool HasActedThisEncounter { get; set; }
+        public string CreatureType { get; set; }
 
         public Character(Monster monster, string name)
         {
@@ -112,6 +114,7 @@ namespace DnD.Models
             CurrentAC = monster.ArmorClass;
             MaxHP = monster.HitPoints;
             CurrentHP = monster.HitPoints;
+            CreatureType = monster.Type;
             //TODO: starting location, actions, abilities
             AttributeBonuses = new AttributeSet()
             {
@@ -281,7 +284,11 @@ namespace DnD.Models
         public void AddCondition(Conditions condition)
         {
             if (!Effects.Contains(condition))
+            {
                 Effects.Add(new Effect(condition));
+                if (condition == Conditions.Shielded)
+                    CurrentAC += 5;
+            }
         }
 
         public void AddCondition(Conditions condition, Character source)
@@ -291,6 +298,8 @@ namespace DnD.Models
                 Effect effect = new Effect(condition);
                 effect.Source = source;
                 Effects.Add(effect);
+                if (condition == Conditions.Shielded)
+                    CurrentAC += 5;
             }
         }
 
@@ -302,6 +311,8 @@ namespace DnD.Models
                 effect.SaveDC = saveDC;
                 effect.Source = source;
                 Effects.Add(effect);
+                if (condition == Conditions.Shielded)
+                    CurrentAC += 5;
             }
         }
 

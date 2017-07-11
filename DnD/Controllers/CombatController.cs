@@ -29,7 +29,7 @@ namespace DnD.Controllers
         public IActionResult RunSimulation(int sessionId)
         {
             _log.Info("beginning sim");
-            session = _repo.LoadSession(sessionId);
+            session = _repo.LoadSession(2);
             _log.Debug("test:" + sessionId);
             for (int j = 0; j < session.Trials; j++)
             {
@@ -343,6 +343,7 @@ namespace DnD.Controllers
         {
             bool finished = false;
             c.Statistics.TurnsActive++;
+            c.HasActedThisEncounter = true;
             foreach (var a in c.Actions.Where(a => a.RefreshType == RefreshTypes.Recharge && a.RemainingUses == 0))
             {
                 _log.Debug("Trying to recharge " + a.Name);
@@ -402,6 +403,8 @@ namespace DnD.Controllers
                     int remainingAttacks = action.NumAttacks;
                     if (action.ActionType != ActionTypes.Attack) //assumes only attacks can have mulitple attacks
                         remainingAttacks = 1;
+                    else if (session.Encounters[session.CurrentEncounter].Round == 1 && c.HasAbility("UnderdarkScout"))
+                        remainingAttacks++;
                     while (remainingAttacks > 0)
                     {
                         if (action.ActionType == ActionTypes.Attack && action.AttackType == AttackTypes.Melee)
@@ -801,7 +804,7 @@ namespace DnD.Controllers
             action.AttacksMade++;
             target.Statistics.AttacksAgainst++;
             int attRoll;
-            bool hasAdv = attacker.AdvantageFor(action.AttackType) || target.AdvantageAgainst(action.AttackType);
+            bool hasAdv = attacker.AdvantageFor(action.AttackType) || target.AdvantageAgainst(action.AttackType) || (session.Encounters[session.CurrentEncounter].Round == 1 && !target.HasActedThisEncounter && attacker.HasAbility("Natural Explorer"));
             bool hasDis = attacker.DisadvantageFor(action.AttackType) || target.DisadvantageAgainst(action.AttackType);
             if (hasAdv && !hasDis)
             {
@@ -918,6 +921,11 @@ namespace DnD.Controllers
                     dmg += _roll.RollDice(action.Damage, isCrit, 2) + action.DamageBonus;
                 else
                     dmg += _roll.RollDice(action.Damage, isCrit) + action.DamageBonus;
+                CombatAction abil = attacker.GetAbility("Favored Enemy");
+                if (abil != null && abil.Targeting != null && abil.Targeting.SpecificTarget == target.CreatureType)
+                {
+                    dmg += abil.DamageBonus;
+                }
                 if (target.IsCursedByAttacker(attacker))
                 {
                     int bonusdmg;
@@ -1023,8 +1031,12 @@ namespace DnD.Controllers
         private void prepForCombat(Character c)
         {
             _log.Debug("initiative roll for " + c.Name);
-            c.Initiative = _roll.Roll20() + c.InitiativeBonus;
+            if (c.HasAbility("Natural Explorer"))
+                c.Initiative = _roll.Roll20WithAdv() + c.InitiativeBonus;
+            else
+                c.Initiative = _roll.Roll20() + c.InitiativeBonus;
             c.Location = c.StartingLocation;
+            c.HasActedThisEncounter = false;
             if (c.TempHP < 8 && c.HasAbility("Fiendish Vigor"))
             {
                 _log.Debug(c.Name + " uses Fiendish Vigor (Temp HP = 8)");

@@ -81,6 +81,11 @@ namespace DnD.Models
         public int PowerAttacks { get; set; }
         public int RechargeNumber { get; set; }
 
+        public CombatAction(string name)
+        {
+            Name = name;
+            Description = name;
+        }
 
         public CombatAction(string name, string dmg, int dmgBonus, int maxUses, RefreshTypes refreshType, int spellLevel, HealingPriorities priority)
         {
